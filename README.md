@@ -1,2 +1,0 @@
-# MATHLAB
-Intreactive math tool
