@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MathLab Pro </title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.5.0/math.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    :root {
+      --bg: #0e0e0e;
+      --panel: #1b1b1b;
+      --text: #eaeaea;
+      --accent: #00b4ff;
+    }
+    [data-theme="light"] {
+      --bg: #f5f5f5;
+      --panel: #ffffff;
+      --text: #111;
+      --accent: #007bff;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 1rem 2rem;
+    }
+    h1 {
+      color: var(--accent);
+    }
+    select, input, button, textarea {
+      font-size: 16px;
+      padding: 6px 10px;
+      margin: 6px;
+      border-radius: 6px;
+      border: 1px solid var(--accent);
+      background: var(--panel);
+      color: var(--text);
+    }
+    .section {
+      display: none;
+      margin-top: 1rem;
+      background: var(--panel);
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    .section.active {
+      display: block;
+    }
+    .result, .history-log {
+      margin-top: 1rem;
+      padding: 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 6px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    .symbol-keypad button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      margin: 4px;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #graph {
+      height: 400px;
+    }
+  </style>
+</head>
+<body data-theme="dark">
+
+<h1>📘 MathLab Pro – Phase 2.6</h1>
+<button onclick="toggleTheme()">🌗 Toggle Theme</button>
+<select id="modeSelect" onchange="switchMode()">
+  <option value="calc">🧮 Basic Calculator</option>
+  <option value="trig">📐 Trigonometry</option>
+  <option value="calculus">📊 Calculus</option>
+  <option value="plot">📈 Plot Graph</option>
+</select>
+
+<!-- Basic Calculator -->
+<div id="calc" class="section active">
+  <input type="text" id="calcInput" placeholder="e.g. 5 + sqrt(16)" size="40" />
+  <button onclick="computeBasic()">Compute</button>
+  <div class="symbol-keypad">
+    <button onclick="insertSymbol('π')">π</button>
+    <button onclick="insertSymbol('^')">^</button>
+    <button onclick="insertSymbol('√')">√</button>
+    <button onclick="insertSymbol('e')">e</button>
+    <button onclick="insertSymbol('ln(')">ln</button>
+    <button onclick="insertSymbol('sin(')">sin</button>
+    <button onclick="insertSymbol('cos(')">cos</button>
+    <button onclick="insertSymbol('tan(')">tan</button>
+  </div>
+  <div class="result" id="calcResult"></div>
+</div>
+
+<!-- Trigonometry -->
+<div id="trig" class="section">
+  <input type="number" id="angleInput" placeholder="Angle" />
+  <select id="angleUnit">
+    <option value="deg">Degrees</option>
+    <option value="rad">Radians</option>
+  </select>
+  <button onclick="computeTrig()">Compute</button>
+  <div class="result" id="trigResult"></div>
+</div>
+
+<!-- Calculus -->
+<div id="calculus" class="section">
+  <input type="text" id="calcFunc" placeholder="Enter f(x), e.g. x^2 * sin(x)" size="50"/>
+  <select id="calcOp">
+    <option value="derivative">Derivative</option>
+    <option value="integral">Integral</option>
+    <option value="series">Series (Maclaurin)</option>
+    <option value="limit">Limit (simulated)</option>
+  </select>
+  <input type="text" id="extraParam" placeholder="Variable or order (e.g. x or x,2)" />
+  <button onclick="computeCalculus()">Compute</button>
+  <div class="symbol-keypad">
+    <button onclick="insertSymbol('x')">x</button>
+    <button onclick="insertSymbol('^2')">^2</button>
+    <button onclick="insertSymbol('^3')">^3</button>
+    <button onclick="insertSymbol('exp(')">exp</button>
+    <button onclick="insertSymbol('log(')">log</button>
+    <button onclick="insertSymbol('1/x')">1/x</button>
+  </div>
+  <div class="result" id="calculusResult"></div>
+</div>
+
+<!-- Plot Graph -->
+<div id="plot" class="section">
+  <input type="text" id="plotExpr" placeholder="Function f(x), e.g. sin(x)" size="40" />
+  <button onclick="plotGraph()">Plot</button>
+  <div id="graph"></div>
+</div>
+
+<!-- History -->
+<h3>🧠 History Log</h3>
+<div class="history-log" id="historyLog"></div>
+<button onclick="clearHistory()">🗑 Clear</button>
+
+<script>
+let history = [];
+
+function toggleTheme() {
+  const doc = document.documentElement;
+  const theme = doc.getAttribute("data-theme");
+  doc.setAttribute("data-theme", theme === "dark" ? "light" : "dark");
+}
+
+function switchMode() {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const mode = document.getElementById("modeSelect").value;
+  document.getElementById(mode).classList.add('active');
+}
+
+function insertSymbol(symbol) {
+  const active = document.activeElement;
+  if (active && active.setRangeText) {
+    const start = active.selectionStart;
+    const end = active.selectionEnd;
+    active.setRangeText(symbol, start, end, 'end');
+    active.focus();
+  }
+}
+
+function computeBasic() {
+  try {
+    const input = document.getElementById("calcInput").value;
+    const result = math.evaluate(input);
+    document.getElementById("calcResult").innerText = "= " + result;
+    logHistory("Basic", input, result);
+  } catch (e) {
+    document.getElementById("calcResult").innerText = "❌ " + e.message;
+  }
+}
+
+function computeTrig() {
+  const angle = parseFloat(document.getElementById("angleInput").value);
+  const unit = document.getElementById("angleUnit").value;
+  const rad = unit === "deg" ? math.unit(angle, 'deg').toNumber('rad') : angle;
+  const result = {
+    sin: math.sin(rad),
+    cos: math.cos(rad),
+    tan: math.tan(rad)
+  };
+  const out = `sin = ${result.sin}\ncos = ${result.cos}\ntan = ${result.tan}`;
+  document.getElementById("trigResult").innerText = out;
+  logHistory("Trig", angle + " " + unit, out);
+}
+
+function computeCalculus() {
+  const expr = document.getElementById("calcFunc").value;
+  const op = document.getElementById("calcOp").value;
+  const extra = document.getElementById("extraParam").value.trim();
+  let variable = "x", order = 1;
+
+  if (extra.includes(',')) {
+    [variable, order] = extra.split(',').map(s => s.trim());
+    order = parseInt(order);
+  } else if (extra) variable = extra;
+
+  try {
+    let result = "";
+    if (op === "derivative") {
+      let res = math.derivative(expr, variable);
+      for (let i = 1; i < order; i++) {
+        res = math.derivative(res.toString(), variable);
+      }
+      result = res.toString();
+    } else if (op === "integral") {
+      result = "∫ (" + expr + ") dx ≈ [Numerical or symbolic coming soon]";
+    } else if (op === "series") {
+      result = "Series expansion not yet symbolic. (Coming soon)";
+    } else if (op === "limit") {
+      result = "Limit not evaluated symbolically yet.";
+    }
+    document.getElementById("calculusResult").innerText = result;
+    logHistory("Calculus - " + op, expr, result);
+  } catch (e) {
+    document.getElementById("calculusResult").innerText = "❌ " + e.message;
+  }
+}
+
+function plotGraph() {
+  const expr = document.getElementById("plotExpr").value;
+  const x = [];
+  const y = [];
+  for (let i = -20; i <= 20; i += 0.2) {
+    try {
+      x.push(i);
+      y.push(math.evaluate(expr, { x: i }));
+    } catch {
+      x.push(i);
+      y.push(null);
+    }
+  }
+  Plotly.newPlot('graph', [{ x, y, type: 'scatter', name: expr }], {
+    margin: { t: 0 },
+    plot_bgcolor: 'transparent',
+    paper_bgcolor: 'transparent',
+    font: { color: getComputedStyle(document.body).color }
+  });
+  logHistory("Plot", expr, "Plotted from -20 to +20");
+}
+
+function logHistory(type, input, output) {
+  const entry = `${type}:\nInput: ${input}\nResult: ${output}\n---`;
+  history.unshift(entry);
+  document.getElementById("historyLog").innerText = history.slice(0, 10).join('\\n');
+}
+
+function clearHistory() {
+  history = [];
+  document.getElementById("historyLog").innerText = '';
+}
+</script>
+
+</body>
+</html>
